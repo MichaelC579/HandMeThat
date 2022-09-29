@@ -12,7 +12,6 @@
 
 //#include "human_tracker/humans.h"
 #include "tracker.h"
-#include "point_tracker_node.h"
 
 #include <tf/transform_datatypes.h>
 #include <tf/transform_listener.h>
