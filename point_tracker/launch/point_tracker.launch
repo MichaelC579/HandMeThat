@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<launch>
+<node pkg="point_tracker" type="point_tracker" name="point_tracker" output="screen">
+</node>
+</launch>
