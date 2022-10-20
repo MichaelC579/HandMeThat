@@ -42,6 +42,8 @@ class MyPublisher
 
     void cloud_callback(const sensor_msgs::PointCloud2 &msg);
 
+    void callback();
+
 };
 
 static ros::ServiceClient						*pClient;
@@ -58,8 +60,15 @@ MyPublisher::MyPublisher(void):cloud(new pcl::PointCloud<pcl::PointXYZRGB>)
 
 void MyPublisher::cloud_callback(const sensor_msgs::PointCloud2 &msg)
 {
-    float* joints = hand_track.get_joints(image);
     pcl::fromROSMsg(msg, *cloud);
+}
+
+void MyPublisher::callback() {
+    float* joints = hand_track.get_joints(image);
+    
+    if(joints == NULL) {
+        return;
+    }
     ros::Time t = ros::Time::now();
     bot_joint.header.stamp = t;
     bot_joint.header.frame_id = "head_rgbd_sensor_rgb_frame";
@@ -68,7 +77,7 @@ void MyPublisher::cloud_callback(const sensor_msgs::PointCloud2 &msg)
 
     if(joints[0] > 0 && joints[1] > 0 && joints[2] > 0 && joints[3] > 0) {
 
-                int point_idx = joints[0]+joints[1]*CAMERA_PIXEL_WIDTH;
+                int point_idx = (int) joints[0] + (int) joints[1]* CAMERA_PIXEL_WIDTH;
                 float point_z=0.0;
                 float point_x=0.0;
                 float point_y=0.0;
@@ -92,7 +101,7 @@ void MyPublisher::cloud_callback(const sensor_msgs::PointCloud2 &msg)
 
                 }
 
-                point_idx = joints[2]+joints[3]*CAMERA_PIXEL_WIDTH;
+                point_idx = (int) joints[2] + (int) joints[3]* CAMERA_PIXEL_WIDTH;
                 point_z=0.0;
                 point_x=0.0;
                 point_y=0.0;
@@ -115,12 +124,14 @@ void MyPublisher::cloud_callback(const sensor_msgs::PointCloud2 &msg)
                     bot_joint.point.z =point_z;
 
                 }
-
-    top_pub.publish(top_joint);
-    bot_pub.publish(bot_joint);
+    
+    if(std::sqrt(std::pow(bot_joint.point.x - top_joint.point.x, 2) + std::pow(bot_joint.point.y - top_joint.point.y, 2) + std::pow(bot_joint.point.z - top_joint.point.z, 2)) < 1)
+    {
+        top_pub.publish(top_joint);
+        bot_pub.publish(bot_joint);
+    }
+    }
 }
-}
-
 
 
 void callback(const sensor_msgs::PointCloud2 &cloud)
@@ -140,6 +151,7 @@ void callback2(const sensor_msgs::Image::ConstPtr &rgb_image)
     cv::Mat imgI(rgb_image->height, rgb_image->width, CV_8UC3);
     memcpy(imgI.data, rgb_image->data.data(), rgb_image->data.size());
     mp.image = imgI;
+    mp.callback();
 }
 
 
@@ -155,7 +167,7 @@ int main(int argc, char *argv[])
     ros::Subscriber subscriber1 = nh.subscribe( "/hsrb/head_rgbd_sensor/rgb/image_rect_color", 1, callback2);
 	ros::Subscriber subscriber2 = nh.subscribe( "/hsrb/head_rgbd_sensor/depth_registered/rectified_points", 1, callback);
     mp.top_pub = nh.advertise<geometry_msgs::PointStamped>("/hand_track/top_joint", 0);
-    mp.top_pub = nh.advertise<geometry_msgs::PointStamped>("/hand_track/bot_joint", 0);
+    mp.bot_pub = nh.advertise<geometry_msgs::PointStamped>("/hand_track/bot_joint", 0);
     mp.tf_listener_ = new tf::TransformListener(nh);
 
 	ROS_INFO("Tracker started");

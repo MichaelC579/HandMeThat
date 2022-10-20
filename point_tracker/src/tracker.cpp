@@ -37,12 +37,17 @@ float* Tracker::get_joints(Mat &image) {
         pFunc = PyDict_GetItemString (pDict, (char*)"process"); 
 
         PyObject* result = PyObject_CallObject(pFunc, args);
-        if(result == nullptr) {
-            PyErr_Print();
+        PyErr_Print();
+        if((int) PyList_Size(result) != 0) {
+            float *temp = new float[4];
+            char* a11;
+            PyObject *ptemp, *objectsRepresentation;
+            for(int i = 0; i < 4; i++) {
+                ptemp = PyList_GetItem(result,i);
+                temp[i] = PyFloat_AsDouble(ptemp);
+            }
+            return temp;
         }
-        float *temp = new float[6];
-        memcpy(temp,PyArray_DATA(result),6*sizeof(float));
-        return temp;
     }
     return NULL;
 }
