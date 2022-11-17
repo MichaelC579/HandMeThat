@@ -75,12 +75,10 @@ void MyPublisher::callback() {
     top_joint.header.stamp = t;
     top_joint.header.frame_id = "head_rgbd_sensor_rgb_frame";
 
-    if(joints[0] > 0 && joints[1] > 0 && joints[2] > 0 && joints[3] > 0) {
+    if(joints[0] > 0 && joints[1] > 0 && joints[3] > 0 && joints[4] > 0 && joints[6] > 0 && joints[7] > 0) {
 
                 int point_idx = (int) joints[0] + (int) joints[1]* CAMERA_PIXEL_WIDTH;
-                float point_z=0.0;
-                float point_x=0.0;
-                float point_y=0.0;
+                float wrist_z=0.0;
 
                 if ((point_idx<0) || (!pcl::isFinite(cloud->points[point_idx]))){
                     return;
@@ -89,47 +87,50 @@ void MyPublisher::callback() {
 
                    if(cloud->points[point_idx].z)
                    {
-                       point_x = cloud->points[point_idx].x;
-                       point_y = cloud->points[point_idx].y;
-                       point_z = cloud->points[point_idx].z;
+                       wrist_z = cloud->points[point_idx].z;
 
                    }
                     //ROS_INFO("bodyparpoint x : %d , y: %d , point idx :%d , point_z : %.3f ",bodypart_3d.x, bodypart_3d.y, point_idx, point_z);
-                    top_joint.point.x =point_x;
-                    top_joint.point.y =point_y;
-                    top_joint.point.z =point_z;
+                    point_idx = (int) joints[0] + (int) joints[1]* CAMERA_PIXEL_WIDTH;
+                    top_joint.point.x =cloud->points[point_idx].x;
+                    top_joint.point.y =cloud->points[point_idx].y;
+                    top_joint.point.z =wrist_z + joints[2];
+                    point_idx = (int) joints[3] + (int) joints[4]* CAMERA_PIXEL_WIDTH;
+                    bot_joint.point.x =cloud->points[point_idx].x;
+                    bot_joint.point.y =cloud->points[point_idx].y;
+                    bot_joint.point.z =wrist_z + joints[5];
 
                 }
 
-                point_idx = (int) joints[2] + (int) joints[3]* CAMERA_PIXEL_WIDTH;
-                point_z=0.0;
-                point_x=0.0;
-                point_y=0.0;
+                // point_idx = (int) joints[2] + (int) joints[3]* CAMERA_PIXEL_WIDTH;
+                // point_z=0.0;
+                // point_x=0.0;
+                // point_y=0.0;
 
-                if ((point_idx<0) || (!pcl::isFinite(cloud->points[point_idx]))){
-                    return;
-                }
-                else{
+                // if ((point_idx<0) || (!pcl::isFinite(cloud->points[point_idx]))){
+                //     return;
+                // }
+                // else{
 
-                   if(cloud->points[point_idx].z)
-                   {
-                       point_x = cloud->points[point_idx].x;
-                       point_y = cloud->points[point_idx].y;
-                       point_z = cloud->points[point_idx].z;
+                //    if(cloud->points[point_idx].z)
+                //    {
+                //        point_x = cloud->points[point_idx].x;
+                //        point_y = cloud->points[point_idx].y;
+                //        point_z = cloud->points[point_idx].z;
 
-                   }
-                    //ROS_INFO("bodyparpoint x : %d , y: %d , point idx :%d , point_z : %.3f ",bodypart_3d.x, bodypart_3d.y, point_idx, point_z);
-                    bot_joint.point.x =point_x;
-                    bot_joint.point.y =point_y;
-                    bot_joint.point.z =point_z;
+                //    }
+                //     //ROS_INFO("bodyparpoint x : %d , y: %d , point idx :%d , point_z : %.3f ",bodypart_3d.x, bodypart_3d.y, point_idx, point_z);
+                //     bot_joint.point.x =point_x;
+                //     bot_joint.point.y =point_y;
+                //     bot_joint.point.z =point_z;
 
-                }
+                // }
     
-    if(std::sqrt(std::pow(bot_joint.point.x - top_joint.point.x, 2) + std::pow(bot_joint.point.y - top_joint.point.y, 2) + std::pow(bot_joint.point.z - top_joint.point.z, 2)) < 1)
-    {
+    // if(std::sqrt(std::pow(bot_joint.point.x - top_joint.point.x, 2) + std::pow(bot_joint.point.y - top_joint.point.y, 2) + std::pow(bot_joint.point.z - top_joint.point.z, 2)) < 1)
+    // {
         top_pub.publish(top_joint);
         bot_pub.publish(bot_joint);
-    }
+    // }
     }
 }
 

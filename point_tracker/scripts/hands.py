@@ -14,8 +14,8 @@ def initialize():
     mp_drawing_styles = mp.solutions.drawing_styles
     mp_hands = mp.solutions.hands
     hands = mp_hands.Hands(static_image_mode=False, max_num_hands=1, model_complexity=1,
-                        min_detection_confidence=0.2,
-                        min_tracking_confidence =0.2)
+                        min_detection_confidence=0.5,
+                        min_tracking_confidence =0.25)
     return True
 
 
@@ -52,6 +52,11 @@ def process(cv2_img):
             baseZ = \
                 hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_MCP].z
 
+            wristX = \
+                hand_landmarks.landmark[mp_hands.HandLandmark.WRIST].x * image_width
+            wristY = \
+                hand_landmarks.landmark[mp_hands.HandLandmark.WRIST].y * image_height
+
         # print("Finger tip: x = " + str(tipX)
         #     + ", y = " + str(tipY)
         #     + ", z = " + str(tipZ))
@@ -73,6 +78,6 @@ def process(cv2_img):
 
         # Flip the image horizontally for a selfie-view display.
 
-            returnList = [tipX, tipY, baseX, baseY]
+            returnList = [tipX, tipY, tipZ, baseX, baseY, baseZ, wristX, wristY]
 
     return returnList
