@@ -26,6 +26,8 @@ NEUTRAL_POSE = {"arm_lift_joint": 0.,
 
 # ACTUAL CODE WE WROTE GOES HERE (START)
 
+# Wait until the referee shakes the robot's wrist to start
+# TODO change parameter to (smach.State)?
 class WaitForStart(State):
     def __init__(self):
         State.__init__(self, outcomes=['signalled', 'not_signalled'])
@@ -56,29 +58,136 @@ class WaitForStart(State):
         except rospy.ServiceException():
             return 'not_signalled'
 
+# Rotate the head until the body of the referee is found
 class FindBodyReferee(smach.State):
-    # rotate the head until the body of the referee is found
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['succeeded'])
 
-    # probably can use LocatePerson in personangle.py
-    def execute():
+    # using LocatePerson in personangle.py
+    def execute(robot):
+        omni_base = FastMove(robot.get('omni_base'))
+        detect_person = LocatePerson(omni_base)
+        detect_person.turn_to_person()
+        return 'succeeded'
 
-    def lookAround(self, userdata):
-        # Move robot's head
-        try:
-            self.whole_body.gaze_point(
-                point=geometry.Vector3(x=userdata["position"].x, y=userdata["position"].y, z=1),
-                ref_frame_id='map')
-        except exceptions.FollowTrajectoryError:
-            pass
+        # try:
+        #     self.whole_body.gaze_point(
+        #         point=geometry.Vector3(x=userdata["position"].x, y=userdata["position"].y, z=1),
+        #         ref_frame_id='map')
+        # except exceptions.FollowTrajectoryError:
+        #     pass
 
+#TODO class
 class FindHand(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, outcomes=[])
+    def execute(robot):
+        # run program point_tracker/src/point_tracker_node.cpp
+
+#TODO comment
+class CreateVector(smach.State):
+    def execute(baseX, baseY, baseZ, tipX, tipY, tipZ):
+        # frontal plane
+        xyangle = math.atan((tipY - baseY)/(tipX - baseX))
+
+        # median plane
+        yzangle = math.atan((tipY - baseY)/(tipZ - baseZ))
+
+        # horizontal plane
+        xzangle = math.atan((tipZ - baseZ)/(tipX - baseX))
+
     def
 
-class CreateVector(smach.State):
-
+#TODO class
 class IdentifyObject(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, outcomes=[])
+    
+    
+# from groceries, convert this into getting the bounding boxes
+class FindBoundingBoxes(smach.State):
+    def __init__(self, ltmc, groovy_motion, fast_move, speech):
+        smach.State.__init__(self, outcomes=['succeeded', 'aborted'], input_keys=['seetable_pose'],
+                             output_keys=['picked_up_object', 'tweak_pose'])
+        self.poses_pub = rospy.Publisher('grasp_poses', PoseArray, latch=True, queue_size=100)
+        self.tfBuffer = tf2_ros.Buffer()
+        self.listener = tf2_ros.TransformListener(self.tfBuffer)
+        self.ltmc = ltmc
+        self.groovy_motion = groovy_motion
+        self.fast_move = fast_move
+        self.speech = speech
 
+        rospy.wait_for_service('/object_cloud/clear_octree')
+        rospy.wait_for_service('/object_cloud/get_bounding_boxes')
+        rospy.wait_for_service('/object_cloud/get_surfaces')
+        rospy.wait_for_service('/viewpoint_controller/stop')
+        self.clear_octree = rospy.ServiceProxy('/object_cloud/clear_octree', Empty)
+        self.get_bounding_boxes = rospy.ServiceProxy('/object_cloud/get_bounding_boxes', GetBoundingBoxes)
+        self.get_surfaces = rospy.ServiceProxy("/object_cloud/get_surfaces", GetSurfaces)
+        self.stop_head = rospy.ServiceProxy('/viewpoint_controller/stop', Empty)
+        self.start_head = rospy.ServiceProxy('/viewpoint_controller/start', Empty)
+        self.clear_octomap = rospy.ServiceProxy('/parallel_planner/clear_octomap', Empty)
+
+        self.pick_up = actionlib.SimpleActionClient('/villa/pick_up', PickUpAction)
+        print("waiting for pick_pick action server")
+        self.pick_up.wait_for_server(rospy.Duration(10))
+
+    # from groceries
+    def BoundingBoxesRequest(surface_height=0):
+        zscale = 1.5
+        xscale = 3
+        yscale = 4
+        objects_req = GetBoundingBoxesRequest()
+        objects_req.search_box.header.frame_id = 'base_link'
+        objects_req.search_box.origin.z = surface_height + zscale / 2
+        objects_req.search_box.origin.x = xscale / 2
+        objects_req.search_box.scale.x = xscale
+        objects_req.search_box.scale.y = yscale
+        objects_req.search_box.scale.z = zscale
+
+        return objects_req
+
+    # currently just prints the positions of the bounding boxes 
+    def execute(self, userdata):
+        self.clear_octomap()
+
+        count = 0
+        while count < 3:
+            self.clear_octree()
+            rospy.sleep(1)
+
+            # Get the bounding boxes!
+            objects_req = BoundingBoxesRequest()
+            bboxes = self.get_bounding_boxes(objects_req)
+            objects = bboxes.bounding_boxes.markers[:]
+
+            if len(objects) > 0:
+                break
+            print ("Waiting for bounding boxes")
+            count += 1
+
+        if (len(objects)) == 0:
+            return "aborted"
+
+
+        print("number of objects found: " + len(bboxes.bounding_boxes.markers))
+        # if len(bboxes.bounding_boxes.markers) <= 0:
+        #     self.speech.say("Can't see any objects. Let me shimmy.")
+        #     userdata.tweak_pose = utils.shimmy()
+        #     return 'aborted'
+
+        # Select random object to pick up
+        objects = bboxes.bounding_boxes.markers[:]
+        for obj in objects:
+            print (obj.pose.position)
+
+    
+#TODO class
 class EndState(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, outcomes=[])
+    def execute():
+
 
 
 # ACTUAL CODE WE WROTE GOES HERE (END)
@@ -90,7 +199,7 @@ class EndState(smach.State):
 
 
 
-
+#______________________________________________________________________________
 # POTENTIAL RESOURCES COPIED FROM OTHER FILES
 
 # from common
@@ -294,15 +403,14 @@ class FindGuest(smach.State):
 
         return 'succeeded'
 
-
-# from go and get it, maybe for bounding boxes of objects?
-def BoundingBoxesRequest():
-    zscale = 2
-    xscale = 2
-    yscale = 1
+# from groceries
+def BoundingBoxesRequest(surface_height=0):
+    zscale = 1.5
+    xscale = 3
+    yscale = 4
     objects_req = GetBoundingBoxesRequest()
     objects_req.search_box.header.frame_id = 'base_link'
-    objects_req.search_box.origin.z = zscale / 2
+    objects_req.search_box.origin.z = surface_height + zscale / 2
     objects_req.search_box.origin.x = xscale / 2
     objects_req.search_box.scale.x = xscale
     objects_req.search_box.scale.y = yscale
