@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import cv2
+import math
 import mediapipe as mp
 
 
@@ -57,6 +58,41 @@ def process(cv2_img):
             wristY = \
                 hand_landmarks.landmark[mp_hands.HandLandmark.WRIST].y * image_height
 
+            pointing = True    
+
+            for i in range(9,21,4):
+
+                checktipX = \
+                    hand_landmarks.landmark[i+3].x * image_width
+                checktipY = \
+                    hand_landmarks.landmark[i+3].y * image_height
+                checktipZ = \
+                    hand_landmarks.landmark[i+3].z
+
+                checkbaseX = \
+                    hand_landmarks.landmark[i].x * image_width
+                checkbaseY = \
+                    hand_landmarks.landmark[i].y * image_height
+                checkbaseZ = \
+                    hand_landmarks.landmark[i].z
+
+                checkmiddleX = \
+                    hand_landmarks.landmark[i+1].x * image_width
+                checkmiddleY = \
+                    hand_landmarks.landmark[i+1].y * image_height
+                checkmiddleZ = \
+                    hand_landmarks.landmark[i+1].z
+
+                baseToTip = math.sqrt(((checktipX-checkbaseX)**2)+((checktipY-checkbaseY)**2) +((checktipZ-checkbaseZ)**2))
+                middleToTip = math.sqrt(((checktipX-checkmiddleX)**2)+((checktipY-checkmiddleY)**2) +((checktipZ-checkmiddleZ)**2))
+                if((baseToTip + 0.1) > middleToTip):
+                    pointing = False
+
+
+
+
+
+
         # print("Finger tip: x = " + str(tipX)
         #     + ", y = " + str(tipY)
         #     + ", z = " + str(tipZ))
@@ -78,6 +114,6 @@ def process(cv2_img):
 
         # Flip the image horizontally for a selfie-view display.
 
-            returnList = [tipX, tipY, tipZ, baseX, baseY, baseZ, wristX, wristY]
+            returnList = [tipX, tipY, tipZ, baseX, baseY, baseZ, wristX, wristY, pointing]
 
     return returnList
