@@ -75,7 +75,7 @@ void MyPublisher::callback() {
     top_joint.header.stamp = t;
     top_joint.header.frame_id = "head_rgbd_sensor_rgb_frame";
 
-    if(joints[0] > 0 && joints[1] > 0 && joints[3] > 0 && joints[4] > 0 && joints[6] > 0 && joints[7] > 0) {
+    if(joints[8] != 0 && joints[0] > 0 && joints[1] > 0 && joints[3] > 0 && joints[4] > 0 && joints[6] > 0 && joints[7] > 0) {
 
                 int point_idx = (int) joints[0] + (int) joints[1]* CAMERA_PIXEL_WIDTH;
                 float wrist_z=0.0;
