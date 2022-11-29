@@ -39,10 +39,10 @@ float* Tracker::get_joints(Mat &image) {
         PyObject* result = PyObject_CallObject(pFunc, args);
         PyErr_Print();
         if((int) PyList_Size(result) != 0) {
-            float *temp = new float[8];
+            float *temp = new float[9];
             char* a11;
             PyObject *ptemp, *objectsRepresentation;
-            for(int i = 0; i < 8; i++) {
+            for(int i = 0; i < 9; i++) {
                 ptemp = PyList_GetItem(result,i);
                 temp[i] = PyFloat_AsDouble(ptemp);
             }
